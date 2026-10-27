@@ -1,0 +1,35 @@
+name: tp-smartclassroom
+
+services:
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Run python3 scripts/setup_env.py first}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Run python3 scripts/setup_env.py first}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-smartclassroom}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?Run python3 scripts/setup_env.py first}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?Run python3 scripts/setup_env.py first}
+    ports:
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./database/mongodb:/opt/smartclassroom-db:ro
+      - ./database/mongodb/init.js:/docker-entrypoint-initdb.d/01-smartclassroom.js:ro
+      - ./tests/mongodb.integration.js:/opt/smartclassroom-tests/mongodb.integration.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--file", "/opt/smartclassroom-db/healthcheck.js"]
+      interval: 10s
+      timeout: 10s
+      start_period: 30s
+      retries: 6
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mongodb_data:
+  mongodb_config:
